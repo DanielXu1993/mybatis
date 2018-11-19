@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration
+        PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+    <settings>
+        <!--指定使用LOG4J输出日志-->
+        <setting name="logImpl" value="LOG4J"/>
+    </settings>
+    <environments default="development">
+        <environment id="development">
+            <transactionManager type="JDBC">
+                <property name="" value=""/>
+            </transactionManager>
+            <!--配置数据源-->
+            <dataSource type="UNPOOLED">
+                <property name="driver" value="com.mysql.jdbc.Driver"></property>
+                <property name="url" value="jdbc:mysql://localhost:3306/mybatis"></property>
+                <property name="username" value="root"></property>
+                <property name="password" value="root"></property>
+            </dataSource>
+        </environment>
+    </environments>
+    <!--引入映射文件-->
+    <mappers>
+        <!--配置映射文件对应的接口所在的包,从而引入所有的映射文件-->
+        <!--
+            这种方式会先查找mapper包下所有的接口,循环对接口进行以下操作:
+                1.判断接口对应的命名空间是否已经存在.存在就抛出异常,不存在就继续操作
+                2.加载对应的XML映射文件:把接口的全名转化为路径以搜索XML文件com.xyh.UserMapper->com/xyh/UserMapper.xml.如果找到就进行解析
+                3.处理接口中的注解方法
+                4.如果根据接口的全名不能找到对应的XML文件,则不能使用该标签导入映射文件.
+                  此时应该使用<mapper resource=... />
+        -->
+        <package name="mapper"></package>
+    </mappers>
+</configuration>

@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="imapper.UserMapper">
+    <!--一对一关系映射-->
+    <!--方式一:关联嵌套映射-->
+    <select id="selectUserAndRoleById" resultType="entity.SysUser">
+        select
+              u.id,
+              u.user_name userName,
+              u.user_password userPassword,
+              u.user_email userEmail,
+              u.user_info userInfo,
+              u.head_img headImg,
+              u.create_time createTime,
+              r.id "role.id",
+              r.role_name "role.roleName",
+              r.enabled "role.enabled",
+              r.create_by "role.createBy",
+              r.create_time "role.createTime"
+        from sys_user u inner join sys_user_role ur on u.id = ur.user_id
+        inner join sys_role r on ur.role_id = r.id
+        where u.id = #{id}
+    </select>
+    <!--方式二:resultMap一对一映射-->
+    <resultMap id="userMap" type="entity.SysUser">
+        <id property="id" column="id"></id>
+        <result property="userName" column="user_name"></result>
+        <result property="userPassword" column="user_password"></result>
+        <result property="userEmail" column="user_email"></result>
+        <result property="userInfo" column="user_info"></result>
+        <result property="headImg" column="head_img" jdbcType="BLOB"></result>
+        <result property="createTime" column="create_time" jdbcType="TIMESTAMP"></result>
+    </resultMap>
+    <!--可以写在一个resultMap中,也可以使用继承关系简化配置-->
+    <resultMap id="userRoleMap" type="entity.SysUser" extends="userMap">
+        <result property="role.id" column="role_id"></result><!--使用别名防止重复-->
+        <result property="role.roleName" column="role_name"></result>
+        <result property="role.enabled" column="enabled"></result>
+        <result property="role.createBy" column="create_by"></result>
+        <result property="role.createTime" column="role_create_time" jdbcType="TIMESTAMP"></result>
+    </resultMap>
+    <select id="selectUserAndRoleById2" resultMap="userRoleMap">
+        select u.id,
+               u.user_name,
+               u.user_password,
+               u.user_email,
+               u.user_info,
+               u.head_img,
+               u.create_time,
+               r.id role_id,
+               r.role_name,
+               r.enabled,
+               r.create_by,
+               r.create_time role_create_time
+        from sys_user u inner join sys_user_role ur on u.id = ur.user_id
+        inner join sys_role r on ur.role_id = r.id
+        where u.id = #{id}
+    </select>
+    <!--方式三:association标签的嵌套查询-->
+    <resultMap id="userRoleMapSelect" type="entity.SysUser" extends="userMap">
+        <!--角色信息是通过在RoleMapper.xml中的配置selectRoleById查询的-->
+        <!--此时是通过两个SQL来获取全部信息的-->
+        <!--
+            <association>标签中常用的属性:
+                select:另一个映射查询的id.MyBatis会额外执行这个查询获取嵌套对象的结果.
+                column:列名(别名),将主查询中列的结果作为嵌套查询的参数.
+                       配置方式:{property1=column1,property2=column2}
+                fetchType:数据加载方式,可选值为lazy(懒加载)和eager(积极加载)
+        -->
+        <!--column="{参数名=参数值}",本SQL是以id为参数名传递参数的,因此在selectRoleById中使用#{id}接收-->
+        <association property="role" column="{id=role_id}" select="imapper.RoleMapper.selectRoleById"/>
+    </resultMap>
+    <select id="selectUserAndRoleByIdSelect" resultMap="userRoleMapSelect">
+        select
+              u.id,
+              u.user_name,
+              u.user_password,
+              u.user_email,
+              u.user_info,
+              u.head_img,
+              u.create_time,
+              ur.role_id
+        from sys_user u inner join sys_user_role ur on u.id = ur.user_id
+        where u.id = #{id}
+    </select>
+    <!--一对多映射配置-->
+    <!--方式一:<collection>集合的嵌套结果映射-->
+    <!--引用其他映射文件中的resultMap:namespace.resultMapId-->
+    <!--
+        MyBatis需要将结果中的记录分类存入集合中.MyBatis会根据<resultMap>标签的子标签
+        <id>中配置的内容(此处为userMap中的id标签)来判断结果是否属于同一个集合.
+        selectAllUserAndRoles的部分结果如下所示:
+              id     user_name      role_id     role_role_name
+               1        admin        1              管理员
+               1        admin        2              普通用户
+              1001      test         2              普通用户
+       由于当前<resultMap>继承自userMap并且userMap中的<id>子标签配置的是id属性.
+       结果映射时前两条记录的id相同,它们被认为是属于同一个用户,因此它们的数据会被合并.
+       而最后一条数据有属于另一位用户.因此最终只包含两位用户的数据.
+       如果将userMap中的<id>标签配置为userPassword(所有用户的password均为123456),
+       则三条数据将会被合并到一个用户下.
+       如果<resultMap>标签中没有配置<id>标签,则将所有的属性依次比较,所有属性值都相同则合并.
+       如果查询语句中的结果列不包含<id>子标签中配置的属性,则该<id>属性值为null,这种情况下不会合并数据.
+    --><!--
+    <resultMap id="userRoleListMap" type="entity.SysUser" extends="userMap">
+        <collection property="roleList" columnPrefix="role_"
+                    resultMap="imapper.RoleMapper.roleMap"></collection>
+    </resultMap>
+    <select id="selectAllUserAndRoles" resultMap="userRoleListMap">
+        select
+              u.id,
+              u.user_name,
+              u.user_password,
+              u.user_email,
+              u.user_info,
+              u.head_img,
+              u.create_time,
+              r.id role_id,
+              r.role_name role_role_name,
+              r.enabled role_enabled,
+              r.create_by role_create_by,
+              r.create_time role_create_time
+        from sys_user u inner join sys_user_role ur on u.id = ur.user_id
+        inner join sys_role r on ur.role_id = r.id
+    </select>
+    -->
+    <!--每个用户对应多个角色外,每个角色对应多种权限-->
+    <resultMap id="userRoleListMap" type="entity.SysUser" extends="userMap">
+        <collection property="roleList" columnPrefix="role_"
+                    resultMap="imapper.RoleMapper.rolePrivilegeListMap"></collection>
+    </resultMap>
+    <select id="selectAllUserAndRoles" resultMap="userRoleListMap">
+        select
+              u.id,
+              u.user_name,
+              u.user_password,
+              u.user_email,
+              u.user_info,
+              u.head_img,
+              u.create_time,
+              r.id role_id,
+              r.role_name role_role_name,
+              r.enabled role_enabled,
+              r.create_by role_create_by,
+              r.create_time role_create_time,
+              p.id role_privilege_id,
+              p.privilege_name role_privilege_privilege_name,
+              p.privilege_url role_privilege_privilege_url
+        from sys_user u inner join sys_user_role ur on u.id = ur.user_id
+        inner join sys_role r on ur.role_id = r.id inner
+        join sys_role_privilege rp on rp.role_id = r.id inner join sys_privilege
+        p on p.id = rp.privilege_id
+    </select>
+    <!--方式二:<collection>集合的嵌套查询-->
+    <resultMap id="userRoleListMapSelect" type="entity.SysUser" extends="userMap">
+        <collection property="roleList" column="{userId = id}"
+                    select="imapper.RoleMapper.selectRoleByUserId">
+        </collection>
+    </resultMap>
+    <select id="selectAllUserAndRolesSelect" resultMap="userRoleListMapSelect">
+        select
+              u.id,
+              u.user_name,
+              u.user_password,
+              u.user_email,
+              u.user_info,
+              u.head_img,
+              u.create_time
+        from sys_user u where u.id = #{id}
+    </select>
+</mapper>

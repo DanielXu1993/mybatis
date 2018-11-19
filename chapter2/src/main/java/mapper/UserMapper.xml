@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--当Mapper接口和XML文件关联的时候,命名空间namespace的值需要配置成对应接口的全名-->
+<!--MyBatis内部就是通过这个值将接口和XML关联起来-->
+<!--当只使用XML而不使用接口时命名空间可以设置任意不重复的值-->
+<mapper namespace="mapper.UserMapper">
+    <!--
+        <resultMap>标签用于配置Java对象的属性与查询结果列的对应关系.
+        通过resultMap中配置的column和property属性可以将查询列的值映射到type对象的属性上.
+    -->
+    <!--
+        <resultMap>标签中包含的属性:
+            id:必填且唯一.用于表示整个标签体的配置.
+            type:必填.配置查询的结果列所映射到的Java对象类型
+            extends:选填.当前resultMap可以继承自其他resultMap,属性值为继承resultMap的id.
+            autoMapping:选填true或false.用于配置是否启用非映射字段
+                        (没有resultMap中配置的字段)的自动映射功能.
+    -->
+    <!--
+        <resultMap>标签中包含的标签体:
+            <id>和<result>标签包含的属性相同,不同之处在于<id>代表的是
+            主键(或唯一值)的字段(可以有多个),它们的属性值是通过setter方法注入的.
+                column:从数据库中得到的列名或者别名.
+                property:映射到列结果的属性.也可以映射一些复杂的属性"address.stress"
+                javaType:一个Java类的全名.
+                    如果映射到一个JavaBean,MyBatis可以自动判断属性类型.
+                    如果映射到HashMap,则需要明确指定javaType属性.
+                jdbcType:列对应的数据库类型.JDBC类型仅仅需要对
+                    插入,更新,删除操作可能为空的列进行处理.
+                typeHandler:使用这个属性可以覆盖默认的类型处理器.
+    -->
+    <resultMap id="userMap" type="entity.SysUser">
+        <!--id属性的值不允许出现"."并且同一个命名空间下不能出现重复的id-->
+        <id property="id" column="id"></id>
+        <result property="userName" column="user_name"></result>
+        <result property="userPassword" column="user_password"></result>
+        <result property="userEmail" column="user_email"></result>
+        <result property="userInfo" column="user_info"></result>
+        <result property="headImg" column="head_img" jdbcType="BLOB"></result>
+        <result property="createTime" column="create_time" jdbcType="TIMESTAMP"></result>
+    </resultMap>
+    <!--
+        XML中的<select>标签中的id属性值与接口中的方法名是一致的.
+        MyBatis就是通过这种方式将接口中的方法与XML中定义的SQL语句关联到一起.
+    -->
+    <!--
+        <select>标签:映射查询语句使用的标签.
+            id:唯一标识,可以表示整个标签的内容.
+            resultMap:用于设置返回值的类型和映射关系.
+    -->
+    <!--
+        查询的结果映射的类型
+        与resultType(或resultMap中的type)类型保持一致,否则会抛出异常
+    -->
+    <!-- #{} : 占位符,占位符字段与接口中方法的参数名保持一致 -->
+    <select id="selectById" resultMap="userMap">
+        select * from sys_user where id = #{id}
+    </select>
+
+    <!--
+        使用resultType来设置结果映射,需要在SQL中
+        为所有列名和属性名闭一只的列设置别名,
+        通过别名使结果列与resultType指定对象的属性保持一致.
+    -->
+    <select id="selectAll" resultType="entity.SysUser">
+        select id,
+            user_name userName,
+            user_password password,
+            user_email email,
+            user_info  userInfo,
+            head_img  headImg,
+            create_time createTime
+        from sys_user;
+    </select>
+
+    <!--
+        虽然这个多表关联的查询中涉及到了3个表,但是返回的结果中只有sys_role表中的信息
+        所以直接使用SysRole作为返回值即可
+    -->
+    <select id="selectRoleByUserId" resultType="entity.SysRole">
+        select r.id,
+               r.role_name roleName,
+               r.enabled,
+               r.create_by createBy,
+               r.create_time createTime,
+               u.user_name as "user.userName",
+               u.user_email as "user.userEmail"
+        from sys_user u
+        inner join sys_user_role ur on u.id = ur.user_id
+        inner join sys_role r on ur.role_id = r.id
+        where u.id = #{userId}
+    </select>
+
+    <!--
+        <insert>标签包含以下属性:
+        id:唯一标识,可以代表整个标签.属性值与接口中对应的方法名保持一致.
+        parameterType:SQL语句中参数的所在的类的全名.MyBatis可以推断传入
+                      语句的具体参数,因此不建议配置该属性.
+        flushCache:默认为true.调用语句都会清空一级和二级缓存.
+        timeout:驱动程序等待数据库返回请求结果的秒数.
+        statementType:STATEMENT(Statement),
+                      PREPARED(PreparedStatement),
+                      CALLABLE(CallableStatement).默认值为PREPARED.
+        useGeneratedKeys:默认为false.如果为true时,MyBatis会使用JDBC的
+                         getGeneratedKeys()方法来抽取有数据库内部生成的主键.
+        keyProperty:通过getGeneratedKeys()方法回去主键值后将值赋予的属性名.
+    -->
+    <!--在values中通过#{property}的方式从参数中取出属性的值-->
+    <!--
+        对于一些特殊的数据类型,建议指定具体的jdbcType值.
+        例如headImg指定BLOB类型,createTime指定TIMESTAMP类型.
+    -->
+    <insert id="insert">
+        insert into sys_user
+        (id,user_name,user_password,user_email,
+         user_info,head_img,create_time)
+        values(
+          #{id},#{userName},#{userPassword},#{userEmail},#{userInfo},
+          #{headImg,jdbcType=BLOB},#{createTime,jdbcType=TIMESTAMP}
+        )
+    </insert>
+    <!--新增用户:使用useGeneratedKeys方式,这种方式只支持主键自增长的数据库-->
+    <insert id="insert2" useGeneratedKeys="true" keyProperty="id">
+        insert into sys_user
+        (user_name,user_password,user_email,
+         user_info,head_img,create_time)
+        values(
+          #{userName},#{userPassword},#{userEmail},#{userInfo},
+          #{headImg,jdbcType=BLOB},#{createTime,jdbcType=TIMESTAMP}
+        )
+    </insert>
+
+    <!--新增用户:使用<selectKey>方式-->
+    <!--既支持不提供主键自增长的数据库(Oracle)又支持提供了主键自增长的数据库-->
+    <insert id="insert3">
+        insert into sys_user
+        (user_name,user_password,user_email,
+        user_info,head_img,create_time)
+        values(
+        #{userName},#{userPassword},#{userEmail},#{userInfo},
+        #{headImg,jdbcType=BLOB},#{createTime,jdbcType=TIMESTAMP}
+        )
+        <!--
+            keyColumn和keyProperty与上面用法一致
+            resultType用于设置返回值类型
+            order与数据库相关:
+                MySQL:AFTER.因为查询主键的语句要在insert语句之后执行
+                ORACLE:BEFORE.需要先从序列中查询主键
+        -->
+        <selectKey keyColumn="id" resultType="long"
+                   keyProperty="id" order="AFTER">
+            SELECT LAST_INSERT_ID()<!--MySQL写法-->
+            <!--ORACLE写法:select seq.id.nextval from dual-->
+        </selectKey>
+    </insert>
+
+    <!--根据主键更新-->
+    <update id="updateById">
+        update sys_user set user_name=#{userName},
+          user_password=#{userPassword},user_email=#{userEmail},
+          user_info=#{userInfo},head_img=#{headImg,jdbcType=BLOB},
+          create_time=#{createTime,jdbcType=TIMESTAMP}
+        where id = #{id}
+    </update>
+
+    <!--根据主键删除-->
+    <delete id="deleteById">
+        delete from sys_user where id = #{id}
+    </delete>
+
+    <!--根据用户id和角色的enabled状态获取用户的角色信息-->
+    <select id="selectRoleByUserIdAndRoleEnabled" resultType="entity.SysRole">
+        select r.id,
+               r.role_name roleName,
+               r.enabled,
+               r.create_by  createBy,
+               r.create_time createTime
+        from sys_user u
+        inner join sys_user_role ur on u.id = ur.user_id
+        inner join sys_role r on ur.role_id = r.id
+        where u.id = #{userId} and r.enabled = #{role.enabled}
+
+    </select>
+</mapper>

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="imapper.UserMapper">
+    <!--
+        MyBatis二级缓存非常强大,它不同于一级缓存只存在于SqlSession的生命周期中,
+        而是可以理解为存在于SqlSessionFactory的生命周期中.
+        在MyBatis的全局配置settings中有一个参数cacheEnabled,这个参数是二级缓存的全局开关,
+        默认为true.
+        MyBatis的二级缓存是和命名空间绑定的,因此二级缓存需要配置在映射文件中或者对应的接口中.
+    -->
+    <!--二级缓存 方式一:在映射文件中配置,只需要添加<cache/>标签即可-->
+    <!--
+        默认的二级缓存会有如下的效果:
+        1. 映射文件中的所有的SELECT语句将会被缓存
+        2. 映射文件中的所有INSERT,UPDATE,DELETE语句都不会被缓存
+        3. 缓存会使用Least Recently Used(LRU,最近最少使用)算法来回收
+        4. 根据时间表(如no Flush Interval,没有时间间隔),缓存不会以任何时间顺序来刷新
+        5. 缓存会存储集合或对象的1024个引用(无论查询方法返回什么类型的值)
+        6. 缓存会被视为read/write(可读写)的,意味着对象检索不是共享的,而且可以安全的被修改而不会
+           干扰其他调用者或者线程所做的潜在修改.
+    -->
+    <!--
+        <cache>标签可配置的属性如下:
+            eviction:回收策略
+                LRU(最近最少使用):移除最长时间不被使用的对象,默认.
+                FIFO(先进先出):按照对象进入缓存的顺序来移除它们.
+                SOFT(软引用):移除基于垃圾回收器状态和软引用规则的对象.
+                WEAK(弱引用):更积极的移除基于垃圾回收器状态和弱引用规则的对象.
+            flushInterval:刷新间隔.可以被设置成任意的正整数,而且它们代表一个合理的毫秒形式的时间段.
+                          默认情况下不设置,即没有刷新间隔,缓存仅仅在调用语句时刷新.
+            size:引用数目.可以被设置为任意正整数,要记住缓存的对象数目和运行环境的可用内存资源数目.默认是1024.
+            readOnly:只读.属性可以被设置为true(只读)或false(读写).只读的缓存会给所有调用者返回缓存对象的相同实例,
+                     因此这些对象不能被修改,这提供了很重要的性能优势.可读写的缓存会通过序列化返回缓存对象的拷贝,这种
+                     方式会慢一些,但是安全.因此默认是false.
+    -->
+    <!--<cache/>-->
+    <resultMap id="userMap" type="entity.SysUser">
+        <id property="id" column="id"></id>
+        <result property="userName" column="user_name"></result>
+        <result property="userPassword" column="user_password"></result>
+        <result property="userEmail" column="user_email"></result>
+        <result property="userInfo" column="user_info"></result>
+        <result property="headImg" column="head_img" jdbcType="BLOB"></result>
+        <result property="createTime" column="create_time" jdbcType="TIMESTAMP"></result>
+    </resultMap>
+    <select id="selectById" resultMap="userMap">
+        select * from sys_user where id = #{id}
+    </select>
+</mapper>

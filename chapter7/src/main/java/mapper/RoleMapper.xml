@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="imapper.RoleMapper">
+    <!--
+        对于可读写的缓存,MyBatis使用SerializedCache序列化缓存来实现可读写缓存类,
+        并通过序列化和反序列化来保证通过缓存获取数据时得到的是一个新的实例.因此所有被
+        序列化的对象必须实现Serializable接口.
+        对于只读缓存,MyBatis使用Map来存储缓存值,这种情况下从缓存中获取的对象就是同一个实例.
+    -->
+    <cache eviction="FIFO" flushInterval="60000" size="512" readOnly="false"></cache>
+    <resultMap id="roleMap" type="entity.SysRole">
+        <id column="id" property="id"></id>
+        <result column="role_name" property="roleName"></result>
+        <result column="enabled" property="enabled"></result>
+        <result column="create_by" property="createBy"></result>
+        <result column="create_time" jdbcType="TIMESTAMP" property="createTime"></result>
+    </resultMap>
+    <select id="selectRoleById" resultMap="roleMap">
+        select * from sys_role where id = #{id}
+    </select>
+</mapper>

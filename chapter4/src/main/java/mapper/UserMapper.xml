@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="imapper.UserMapper">
+    <!--
+        <if>标签有一个必填的属性test,它的属性值是一个符合OGNL要求的表达式.
+        表达式的结果可以是true或false.除此之外.非0值为true,0为false.
+    -->
+    <select id="selectByUser" resultType="entity.SysUser">
+        select id,
+        user_name userName,
+        user_password userPassword,
+        user_email userEmail,
+        user_info userInfo,
+        head_img headImg,
+        create_time createTime
+        from sys_user
+        where 1 = 1
+        <if test="userName != null and userName !='' ">
+            and user_name like concat('%',#{userName},'%')
+        </if>
+        <if test="userEmail != null and userEmail != '' ">
+            and user_email = #{userEmail}
+        </if>
+    </select>
+    <!--根据主键选择性更新-->
+    <update id="updateByIdSelective">
+        update sys_user set
+        <if test="userName != null and userName != '' ">
+            user_name = #{userName},
+        </if>
+        <if test="userPassword != null and userPassword != '' ">
+            user_password = #{userPassword},
+        </if>
+        <if test="userEmail != null and userEmail != '' ">
+            user_email = #{userEmail},
+        </if>
+        <if test="userInfo != null and userInfo != '' ">
+            user_info = #{userInfo},
+        </if>
+        <if test="headImg != null">
+            head_img = #{headImg,jdbcType=BLOB},
+        </if>
+        <if test="createTime != null">
+            create_time = #{createTime,jdbcType=BLOB},
+        </if>
+        id = #{id}
+        where id = #{id}
+    </update>
+
+    <insert id="insert" keyProperty="id" useGeneratedKeys="true">
+        insert into sys_user(user_name,user_password,
+        <if test="userEmail != null and userEmail != '' ">
+            user_email,
+        </if>
+        user_info,head_img,create_time
+        )
+        values(#{userName},#{userPassword},
+        <if test="userEmail != null and userEmail != '' ">
+            #{userEmail},
+        </if>
+        #{userInfo},#{headImg,jdbcType=BLOB},#{createTime,jdbcType=TIMESTAMP}
+        )
+    </insert>
+
+    <!--
+        <if>标签提供了基本的条件判断,但是它无法实现if...else逻辑.要实现这种逻辑就需要使用到
+        <choose><when><otherwise>标签
+        一个<choose>标签至少包含一个<when>标签以及0或1个<otherwise>标签
+    -->
+    <select id="selectByIdOrUserName" resultType="entity.SysUser">
+        select id,user_name userName,user_password userPassword,user_email userEmail,
+        user_info userInfo,head_img headImg,create_time createTime
+        from sys_user
+        where 1 = 1
+        <choose>
+            <when test=" id != null">
+                and id = #{id}
+            </when>
+            <when test="userName != null and userName != '' ">
+                and user_name = #{userName}
+            </when>
+            <otherwise>
+                <!--没有这个条件限制所有的用户都会被查询出来-->
+                and 1 = 2
+            </otherwise>
+        </choose>
+    </select>
+
+    <!--
+        <where>标签的作用:
+        如果该标签包含的子元素有返回值,则将返回结果拼接到where中
+        如果where后面的语句是以AND或者OR开头,则将它们剔除.
+        当子元素没有返回时就没有where语句
+    -->
+    <select id="selectByUser2" resultType="entity.SysUser">
+        select id,user_name userName,user_password userPassword,
+        user_email userEmail,user_info userInfo,head_img headImg,
+        create_time createTime
+        from sys_user
+        <where>
+            <if test="userName != null and userName != '' ">
+                and user_name like concat('%',#{userName},'%')
+            </if>
+            <if test="userEmail != null and userEmail != '' ">
+                and user_email = #{userEmail}
+            </if>
+        </where>
+    </select>
+
+    <!--
+        <set>标签:如果该标签中的子元素有返回值,则将返回值拼接成一个set语句.
+        如果set后面的语句是以逗号结尾,则将这个逗号删除.
+    -->
+    <!--根据主键选择性更新-->
+    <update id="updateByIdSelective2">
+        update sys_user
+        <set>
+            <if test="userName != null and userName != '' ">
+                user_name = #{userName},
+            </if>
+            <if test="userPassword != null and userPassword != '' ">
+                user_password = #{userPassword},
+            </if>
+            <if test="userEmail != null and userEmail != '' ">
+                user_email = #{userEmail},
+            </if>
+            <if test="userInfo != null and userInfo != '' ">
+                user_info = #{userInfo},
+            </if>
+            <if test="headImg != null">
+                head_img = #{headImg,jdbcType=BLOB},
+            </if>
+            <if test="createTime != null">
+                create_time = #{createTime,jdbcType=BLOB},
+            </if>
+            id = #{id}
+        </set>
+        where id = #{id}
+    </update>
+    <!--
+        <where>标签和<set>标签的功能都可以用<trim>标签来实现.
+        <where>标签的<trim>实现:
+            <trim prefix="WHERE" prefixOverrides="AND |OR ">
+                ...
+            </trim>
+        <set>标签的<trim>实现:
+            <trim prefix="SET" suffixOverrides=",">
+                ...
+            </trim>
+        <trim>标签的属性:
+            prefix:当trim元素内包含内容时会给内容增加指定的前缀
+            prefixOverrides:去除包含内容的前缀字符
+            suffix:给内容增加的指定后缀
+            suffixOverrides:把内容中匹配的后缀字符去掉
+    -->
+    <!--
+        <foreach>标签可以对数组,Map或者实现了Iterable接口的对象进行遍历.
+        数组在处理时会转为List对象.
+    -->
+
+    <!--
+        <foreach>标签中的属性:
+            collection:必填,职位要迭代循环的属性名.
+                    只有一个参数时默认为[collection,list,array]三者之一.
+                    推荐使用@Param注解来指定参数的名字.
+                    如果使用@Param没有指定Map集合的名字,默认为_parameter.
+            item:变量名.表示每一次取出的值.
+            index:在集合数组中表示索引值,在Map中表示的是key.
+            open:整个循环开头的字符串.
+            close:整个循环结尾的字符串.
+            separator:每次循环的分隔符.
+    -->
+    <select id="selectByIdList" resultType="entity.SysUser">
+        select id,user_name userName,user_password userPassword,user_email userEmail,
+        user_info userInfo,head_img headImg,create_time createTime
+        from sys_user
+        where id in
+        <foreach collection="list" open="(" close=")" separator="," item="id" index="i">
+            #{id}
+        </foreach>
+    </select>
+
+    <insert id="insertList">
+        insert into sys_user(user_name,user_password,user_email,user_info,head_img,create_time)
+        values
+        <foreach collection="list" item="user" separator=",">
+            (#{user.userName},#{user.userPassword},#{user.userEmail},
+            #{user.userInfo},#{user.headImg,jdbcType=BLOB},#{user.createTime,jdbcType=TIMESTAMP}
+            )
+        </foreach>
+    </insert>
+
+    <update id="updateByMap">
+        update sys_user set
+        <foreach collection="updateMap" item="val" index="key" separator=",">
+            ${key} = #{val}
+        </foreach>
+        where id = #{updateMap.id}
+    </update>
+</mapper>
